@@ -68,3 +68,14 @@ wayback() {
 	done
 }
 
+jsfiles() {
+	for i in `cat $1`
+	do
+		cat $1 | waybackurls | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js1;
+		cat $1 | gau | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js2;
+		cat $1 | hakrawler | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js3;
+		subjs -i $1 | tee -a tmp-js4;
+		cat tmp-js1 tmp-js2 tmp-js3 tmp-js4 | sort -u | tee -a jsfiles.txt;
+		rm tmp-js1 tmp-js2 tmp-js3 tmp-js4
+	done
+}
