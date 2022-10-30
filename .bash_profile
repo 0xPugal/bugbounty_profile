@@ -36,6 +36,7 @@ subtake() {
 	do
 		subzy -targets $1 --hide_fails --verify_ssl | tee tmp-subzy;
 		SubOver -l $1 | tee tmp-subover;
+		subjack -w $1 -t 100 -timeout 30 -ssl -o tmp-subjack;
 	done
 }
 
