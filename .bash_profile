@@ -6,7 +6,7 @@ subenum() {
 	subfinder -d $1 -all -silent |tee tmp-subfinder;
 	assetfinder --subs-only $1 |tee tmp-assetfinder;
 	findomain-linux -t $1 -quiet | tee tmp-findomain;
-	amass enum -d $1 | tee tmp-amass;
+	amass enum -d $1 -config ~/.config/amass/config.ini | tee tmp-amass;
 	gau --subs $1 | unfurl -u domains | tee tmp-gau;
 	waybackurls $1 | unfurl -u domains | tee tmp-wayback;
 	crobat -s $1 | tee tmp-crobat;
@@ -17,7 +17,7 @@ subenum() {
 done
 }
 
-portscan() {
+naabu() {
 	for i in `cat $1`
 	do
 		naabu -l $1 -rate 100 -port 1-65535 -o $1-ports.txt
@@ -36,7 +36,6 @@ subtake() {
 	do
 		subzy -targets $1 --hide_fails --verify_ssl | tee tmp-subzy;
 		SubOver -l $1 | tee tmp-subover;
-		subjack -w $1 -t 100 -timeout 30 -ssl -o tmp-subjack;
 	done
 }
 
@@ -49,11 +48,31 @@ nuclei() {
 		done
 	}
 
+nuclei_cve() {
+	for i in `cat $1`
+	do
+		nuclei -l $1 -id cves \
+		-rl 200 -c 30 -o $1-cves.txt
+	done
+}
+
 ffuf() {
 	dom=$(echo $1 | unfurl format %s%d)
 	ffuf -c -w wordlists.txt \
 		-recursion -recursion-depth 5 \
 		-H "User-Agent: Mozilla Firefox Mozilla/5.0" \
+		-H "X-Originating-IP: 127.0.0.1" \
+		-H "X-Forwarded-For: 127.0.0.1"
+		-H "X-Forwarded: 127.0.0.1"
+		-H "Forwarded-For: 127.0.0.1"
+		-H "X-Remote-IP: 127.0.0.1"
+		-H "X-Remote-Addr: 127.0.0.1"
+		-H "X-ProxyUser-Ip: 127.0.0.1"
+		-H "X-Original-URL: 127.0.0.1"
+		-H "Client-IP: 127.0.0.1"
+		-H "True-Client-IP: 127.0.0.1"
+		-H "Cluster-Client-IP: 127.0.0.1"
+		-H "X-ProxyUser-Ip: 127.0.0.1"
 		-ac -mc all -of csv -o $1-ffuf.csv
 	}
 
