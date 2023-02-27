@@ -20,7 +20,7 @@ done
 naabu() {
 	for i in `cat $1`
 	do
-		naabu -l $1 -rate 100 -port 1-65535 -o $1-ports.txt
+		naabu -l $1 -port 1-65535 -o $1-ports.txt
 	done
 }
 
