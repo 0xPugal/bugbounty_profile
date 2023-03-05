@@ -1,8 +1,6 @@
 #BugBounty automation
 
 subenum() {
-	for i in `cat $1`
-	do
 	subfinder -d $1 -all -silent |tee tmp-subfinder;
 	assetfinder --subs-only $1 |tee tmp-assetfinder;
 	findomain-linux -t $1 -quiet | tee tmp-findomain;
@@ -14,46 +12,55 @@ subenum() {
 	cero $1 | tee tmp-cero; 
 	cat tmp-subfinder tmp-assetfinder tmp-findomain tmp-amass tmp-gau tmp-wayback tmp-crobat tmp-ctfr tmp-cero | sort -u | grep ".$1" | tee $1-subs.txt;
 	rm tmp-subfinder tmp-assetfinder tmp-findomain tmp-amass tmp-gau tmp-wayback tmp-crobat tmp-ctfr tmp-cero
-done
 }
 
 naabu() {
-	for i in `cat $1`
-	do
-		naabu -l $1 -port 1-65535 -o $1-ports.txt
-	done
+	naabu -l $1 -port 1-65535 -o -nmap $1-ports.txt
 }
 
 alive() {
-	for i in `cat $1`
-	do
-		httpx -l $1 -ports 80,8080,443,8443,8880,9000 -o $1-alive.txt
-	done
+	httpx -l $1 -o $1-alive.txt
+}
+
+httpx_all() {
+	httpx -l $1 -td -sc -cl -title -o $1-httpx_all.txt
 }
 
 subtake() {
-	for i in `cat $1`
-	do
-		subzy -targets $1 --hide_fails --verify_ssl | tee tmp-subzy;
-		SubOver -l $1 | tee tmp-subover;
-	done
+	subzy -targets $1 --hide_fails --verify_ssl | tee tmp-subzy;
+	SubOver -l $1 | tee tmp-subover;
 }
 
 nuclei() {
-	for i in `cat $1`
-	do
-		nuclei -l $1 -severity low,medium,high,critical \
-			-t nuclei-templates/ \
-			-rl 75 -c 10 -o $1-nuclei.txt
-		done
-	}
+	nuclei -l $1 -severity low,medium,high,critical \
+		-t nuclei-templates/ \
+		-rl 200 -c 50 -o $1-nuclei.txt
+}
+
+nuclei_info() {
+	nuclei -l $1 -severity info -o $1-nuclei_info.txt
+}
+
+nuclei_low() {
+	nuclei -l $1 -severity low -o $1-nuclei_low.txt
+}
+
+nuclei_medium() {
+	nuclei -l $1 -severity medium -o $1-nuclei_medium.txt
+}
+
+nuclei_high() {
+	nuclei -l $1 -severity high -o $1-nuclei_high.txt
+}
+
+nuclei_critical() {
+	nuclei -l $1 -severity critical -o $1-nuclei_critical.txt
+}
 
 nuclei_cve() {
-	for i in `cat $1`
-	do
-		nuclei -l $1 -id cves \
+	nuclei -l $1 -id cves \
+		-t ~/nuclei-templates/cves/
 		-rl 200 -c 30 -o $1-cves.txt
-	done
 }
 
 ffuf() {
@@ -76,25 +83,21 @@ ffuf() {
 		-ac -mc all -of csv -o $1-ffuf.csv
 	}
 
-wayback() {
-	for i in `cat $1`
-	do 
-		echo $1 | gau --subs --threads 10 | tee tmp-gau;
-		echo $1 | waybackurls | tee tmp-waybackurls;
-		echo $1 | hakrawler -timeout 15 -subs | tee tmp-hakrawler;
-		cat tmp-gau tmp-waybackurls tmp-hakrawler | sort -u | uro | tee $1-wayback.txt
-		rm tmp-gau tmp-waybackurls tmp-hakrawler
-	done
+archive() {
+	echo $1 | gau --subs --threads 10 | tee tmp-gau;
+	echo $1 | waybackurls | tee tmp-waybackurls;
+	echo $1 | hakrawler -timeout 15 -subs | tee tmp-hakrawler;
+	katana -u $1 -jc -kf -o tmp-katana;
+	cat tmp-gau tmp-waybackurls tmp-hakrawler tmp-katana | sort -u | uro | tee $1-katana.txt
+	rm tmp-gau tmp-waybackurls tmp-hakrawler tmp-katana
 }
 
 jsfiles() {
-	for i in `cat $1`
-	do
-		cat $1 | waybackurls | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js1;
-		cat $1 | gau | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js2;
-		cat $1 | hakrawler | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js3;
-		subjs -i $1 | tee -a tmp-js4;
-		cat tmp-js1 tmp-js2 tmp-js3 tmp-js4 | sort -u | tee -a jsfiles.txt;
-		rm tmp-js1 tmp-js2 tmp-js3 tmp-js4
-	done
+	cat $1 | waybackurls | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js1;
+	cat $1 | gau | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js2;
+	cat $1 | hakrawler | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js3;
+	subjs -i $1 | tee -a tmp-js4;
+	katana -u $1 -jc -kf -silent | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js5;
+	cat tmp-js1 tmp-js2 tmp-js3 tmp-js4 tmp-js5 | sort -u | tee -a jsfiles.txt;
+	rm tmp-js1 tmp-js2 tmp-js3 tmp-js4 tmp-js5
 }
