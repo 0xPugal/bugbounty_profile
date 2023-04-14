@@ -32,29 +32,17 @@ subtake() {
 }
 
 nuclei() {
+	nuclei -l $1 \
+	-es info \
+	-ept openssh,headers,caa \
+	-eid expired-ssl,tls-version,ssl-issuer,deprecated-tls,revoked-ssl-certificate,self-signed-ssl,kubernetes-fake-certificate,ssl-dns-names,weak-cipher-suites,mismatched-ssl-certificate,untrusted-root-certificate,metasploit-c2,openssl-detect,default-ssltls-test-page,wordpress-really-simple-ssl,wordpress-ssl-insecure-content-fixer,cname-fingerprint,mx-fingerprint,txt-fingerprint,http-missing-security-headers,nameserver-fingerprint,caa-fingerprint,ptr-fingerprint \
+	-rl 150 -c 30 \
+	-stats -o $1_nuclei.txt
+
+nuclei_all() {
 	nuclei -l $1 -severity low,medium,high,critical \
 		-t nuclei-templates/ \
 		-rl 200 -c 50 -o $1-nuclei.txt
-}
-
-nuclei_info() {
-	nuclei -l $1 -severity info -o $1-nuclei_info.txt
-}
-
-nuclei_low() {
-	nuclei -l $1 -severity low -o $1-nuclei_low.txt
-}
-
-nuclei_medium() {
-	nuclei -l $1 -severity medium -o $1-nuclei_medium.txt
-}
-
-nuclei_high() {
-	nuclei -l $1 -severity high -o $1-nuclei_high.txt
-}
-
-nuclei_critical() {
-	nuclei -l $1 -severity critical -o $1-nuclei_critical.txt
 }
 
 nuclei_cve() {
