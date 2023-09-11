@@ -1,17 +1,16 @@
 #BugBounty automation
 
 subenum() {
-	subfinder -d $1 -all -silent |tee tmp-subfinder;
-	assetfinder --subs-only $1 |tee tmp-assetfinder;
-	findomain-linux -t $1 -quiet | tee tmp-findomain;
-	amass enum -d $1 -config ~/.config/amass/config.ini | tee tmp-amass;
-	gau --subs $1 | unfurl -u domains | tee tmp-gau;
-	waybackurls $1 | unfurl -u domains | tee tmp-wayback;
-	crobat -s $1 | tee tmp-crobat;
-	ctfr.py -d $1 | tee tmp-ctfr; 
-	cero $1 | tee tmp-cero; 
-	cat tmp-subfinder tmp-assetfinder tmp-findomain tmp-amass tmp-gau tmp-wayback tmp-crobat tmp-ctfr tmp-cero | sort -u | grep ".$1" | tee $1-subs.txt;
-	rm tmp-subfinder tmp-assetfinder tmp-findomain tmp-amass tmp-gau tmp-wayback tmp-crobat tmp-ctfr tmp-cero
+	subfinder -d $1 -all -silent |anew $1-subs.txt;
+	assetfinder --subs-only $1 |anew $1-subs.txt;
+	shuffledns -d $1 -w $wordlists.txt -r $resolvers.txt -silent | $1-subs.txt;
+	findomain-linux -t $1 -quiet | anew $1-subs.txt;
+	amass enum -d $1 -config ~/.config/amass/config.ini | anew $1-subs.txt;
+	gau --subs $1 | unfurl -u domains | anew $1-subs.txt;
+	waybackurls $1 | unfurl -u domains | anew $1-subs.txt;
+	crobat -s $1 | anew $1-subs.txt
+	ctfr.py -d $1 | anew $1-subs.txt 
+	cero $1 | anew $1-subs.txt 
 }
 
 naabu() {
@@ -23,12 +22,12 @@ alive() {
 }
 
 httpx_all() {
-	httpx -l $1 -td -sc -cl -title -o $1-httpx_all.txt
+	httpx -l $1 -td -sc -cl -ct -title -o $1-httpx_all.txt
 }
 
 subtake() {
-	subzy -targets $1 --hide_fails --verify_ssl | tee tmp-subzy;
-	SubOver -l $1 | tee tmp-subover;
+	subzy -targets $1 --hide_fails --verify_ssl | anew sto.txt;
+	SubOver -l $1 | anew sto.txt;
 }
 
 nuclei() {
@@ -39,17 +38,12 @@ nuclei() {
 	-es info,unknown \
 	-rl 150 -c 25 \
 	-o $1_nuclei.txt
+}
 
 nuclei_all() {
 	nuclei -l $1 -severity low,medium,high,critical \
 		-t nuclei-templates/ \
 		-rl 200 -c 50 -o $1-nuclei.txt
-}
-
-nuclei_cve() {
-	nuclei -l $1 -id cves \
-		-t ~/nuclei-templates/cves/
-		-rl 200 -c 30 -o $1-cves.txt
 }
 
 ffuf() {
@@ -72,21 +66,28 @@ ffuf() {
 		-ac -mc all -of csv -o $1-ffuf.csv
 	}
 
+ffuf_multi() {
+	ffuf -c -w $1.txt:URL \
+	-w $wordlists:FUZZ \
+	-u URL/FUZZ \
+	-mc all -of json -o $1-ffuf.json
+}
+
+ffuf_json_2_txt() {
+	cat $1-ffuf.json | jq | grep "url" | sed 's/"//g' | sed 's/url://g' | sed 's/^ *//' | sed 's/,//g' | anew $1-ffuf.txt
+}
+
 archive() {
-	echo $1 | gau --subs --threads 10 | tee tmp-gau;
-	echo $1 | waybackurls | tee tmp-waybackurls;
-	echo $1 | hakrawler -timeout 15 -subs | tee tmp-hakrawler;
-	katana -u $1 -jc -kf -o tmp-katana;
-	cat tmp-gau tmp-waybackurls tmp-hakrawler tmp-katana | sort -u | uro | tee $1-katana.txt
-	rm tmp-gau tmp-waybackurls tmp-hakrawler tmp-katana
+	echo $1 | gau --subs --threads 10 | anew urls;
+	echo $1 | waybackurls | anew urls;
+	echo $1 | hakrawler -timeout 15 -subs | anew urls;
+	katana -u $1 -jc -kf -silent | anew urls;
 }
 
 jsfiles() {
-	cat $1 | waybackurls | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js1;
-	cat $1 | gau | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js2;
-	cat $1 | hakrawler | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js3;
-	subjs -i $1 | tee -a tmp-js4;
-	katana -u $1 -jc -kf -silent | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | tee tmp-js5;
-	cat tmp-js1 tmp-js2 tmp-js3 tmp-js4 tmp-js5 | sort -u | tee -a jsfiles.txt;
-	rm tmp-js1 tmp-js2 tmp-js3 tmp-js4 tmp-js5
+	cat $1 | waybackurls | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | anew js1;
+	cat $1 | gau | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | anew js1;
+	cat $1 | hakrawler | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | anew js1;
+	subjs -i $1 | anew js1;
+	katana -u $1 -jc -kf -silent | grep -iE '\.js' | grep -iEv '(\.jsp|\.json)' | anew js1;
 }
